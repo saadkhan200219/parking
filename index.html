@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Car Parking Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Car Parking Management System</h1>
+  </header>
+  <main>
+    <section class="dashboard">
+      <div class="card">
+        <h2>Total Cars Parked</h2>
+        <p id="totalCars">15</p>
+      </div>
+      <div class="card">
+        <h2>Available Slots</h2>
+        <p id="availableSlots">10</p>
+      </div>
+      <div class="card">
+        <h2>Occupied Slots</h2>
+        <p id="occupiedSlots">5</p>
+      </div>
+    </section>
+    <nav>
+        <button onclick="window.location.href='add-car.html'">Add Car Entry</button>
+        <button onclick="window.location.href='view-slots.html'">View Slots</button>
+        <button onclick="window.location.href='search_cars.html'">Search Cars</button>
+      </nav>
+      
+
+  </main>
+  <script>
+    function navigateTo(page) {
+      alert(`Navigate to ${page} (you'll implement this functionality!)`);
+    }
+  </script>
+</body>
+</html>
