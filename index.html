@@ -10,6 +10,13 @@
   <header>
     <h1>Car Parking Management System</h1>
   </header>
+
+  <nav>
+    <button onclick="window.location.href='add-car.html'">Add Car Entry</button>
+    <button onclick="window.location.href='view-slots.html'">View Slots</button>
+    <button id="logoutButton">Logout</button>
+  </nav>
+
   <main>
     <section class="dashboard">
       <div class="card">
@@ -25,18 +32,40 @@
         <p id="occupiedSlots">5</p>
       </div>
     </section>
-    <nav>
-        <button onclick="window.location.href='add-car.html'">Add Car Entry</button>
-        <button onclick="window.location.href='view-slots.html'">View Slots</button>
-        <button onclick="window.location.href='search_cars.html'">Search Cars</button>
-      </nav>
-      
-
   </main>
+
   <script>
-    function navigateTo(page) {
-      alert(`Navigate to ${page} (you'll implement this functionality!)`);
-    }
+    // Check if the user is logged in
+    fetch('http://127.0.0.1:5000/api/check_login', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.message !== 'Logged in') {
+        window.location.href = 'login.html'; // Redirect to login page if not logged in
+      }
+    })
+    .catch(error => console.error('Error:', error));
+
+    // Logout functionality
+    document.getElementById('logoutButton').addEventListener('click', function() {
+      fetch('http://127.0.0.1:5000/api/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.message === 'Logged out successfully') {
+          window.location.href = 'login.html'; // Redirect to login page after logout
+        }
+      })
+      .catch(error => console.error('Error:', error));
+    });
   </script>
 </body>
 </html>

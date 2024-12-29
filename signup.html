@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Sign Up</h1>
+  </header>
+
+  <nav>
+    <button onclick="window.location.href='login.html'">Login</button>
+    <button onclick="window.location.href='index.html'">Dashboard</button>
+  </nav>
+
+  <main>
+    <form id="signupForm">
+      <label for="username">Username:</label>
+      <input type="text" id="username" placeholder="Enter username" required>
+      <label for="password">Password:</label>
+      <input type="password" id="password" placeholder="Enter password" required>
+      <button type="submit">Sign Up</button>
+    </form>
+  </main>
+
+  <script>
+    document.getElementById('signupForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      fetch('http://127.0.0.1:5000/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.message) {
+          alert(data.message);
+          if (data.message === 'User created successfully') {
+            window.location.href = 'login.html';
+          }
+        }
+      })
+      .catch(error => alert('Error: ' + error));
+    });
+  </script>
+</body>
+</html>

@@ -15,12 +15,46 @@
     <button onclick="window.location.href='index.html'">Dashboard</button>
     <button onclick="window.location.href='add-car.html'">Add Car Entry</button>
     <button onclick="window.location.href='view-slots.html'">View Slots</button>
-    <button onclick="window.location.href='search_cars.html'">Search Cars</button>
+    <!-- <button onclick="window.location.href='search_cars.html'">Search Cars</button> -->
   </nav>
 
   <main>
     <h2>Parking Slots</h2>
-    <p>Slot details and availability will be displayed here.</p>
+    <ul id="slotsList"></ul>
   </main>
+
+  <script>
+    // Check if the user is logged in by checking session or token.
+    // If logged in, proceed to fetch data, else redirect to login page
+    fetch('http://127.0.0.1:5000/api/view_slots', {
+      method: 'GET',
+      credentials: 'include'  // This sends the session cookie for authentication.
+    })
+    .then(response => {
+      if (response.status === 401) {
+        // If the response is 401 Unauthorized, redirect to login page
+        alert('Please log in to view the slots.');
+        window.location.href = 'login.html';
+      } else {
+        return response.json(); // Proceed to process the response data if authenticated
+      }
+    })
+    .then(data => {
+      if (data) {
+        const slotsList = document.getElementById('slotsList');
+        slotsList.innerHTML = ''; // Clear the slots list
+
+        data.forEach(slot => {
+          const listItem = document.createElement('li');
+          listItem.textContent = `Slot ${slot.slot_number}: ${slot.is_occupied ? 'Occupied' : 'Available'}`;
+          slotsList.appendChild(listItem);
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred while fetching slot data.');
+    });
+  </script>
 </body>
 </html>

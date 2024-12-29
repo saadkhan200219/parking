@@ -15,21 +15,38 @@
     <button onclick="window.location.href='index.html'">Dashboard</button>
     <button onclick="window.location.href='add-car.html'">Add Car Entry</button>
     <button onclick="window.location.href='view-slots.html'">View Slots</button>
-    <button onclick="window.location.href='search_cars.html'">Search Cars</button>
   </nav>
+
   <main>
-    <form>
+    <form id="addCarForm">
       <label for="carNumber">Car Number:</label>
       <input type="text" id="carNumber" placeholder="Enter car number" required>
-      
+
       <label for="ownerName">Owner Name:</label>
       <input type="text" id="ownerName" placeholder="Enter owner name" required>
-      
+
       <label for="slotNumber">Slot Number:</label>
       <input type="number" id="slotNumber" placeholder="Enter slot number" required>
-      
-      <button type="submit">Add Entry</button>
+
+      <button type="submit">Add Car</button>
     </form>
   </main>
+
+  <script>
+    // Ensure the user is logged in before accessing this page
+    fetch('http://127.0.0.1:5000/api/check_login', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.message !== 'Logged in') {
+        window.location.href = 'login.html'; // Redirect to login if not logged in
+      }
+    })
+    .catch(error => console.error('Error:', error));
+  </script>
 </body>
 </html>
