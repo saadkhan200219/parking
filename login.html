@@ -14,7 +14,7 @@
 
   <nav>
     <button onclick="window.location.href='signup.html'">Sign Up</button>
-    <button onclick="window.location.href='index.html'">Dashboard</button>
+
   </nav>
 
   <main>
@@ -28,41 +28,46 @@
   </main>
 
   <script>
-    // Handle form submission
-    document.getElementById('loginForm').addEventListener('submit', function (event) {
-      event.preventDefault();
+document.getElementById('loginForm').addEventListener('submit', function(event) {
+  event.preventDefault();
 
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
 
-      // Fetch login API endpoint
-      fetch('/api/login', {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ username: username, password: password })
-      })
-      .then(response => {
-          if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          return response.json();
-      })
-      .then(data => {
-          console.log('Login response:', data);
-          if (data.message === 'Login successful') {
-              // Redirect to the provided URL
-              window.location.href = data.redirect_url;
-          } else {
-              alert('Login failed');
-          }
-      })
-      .catch(error => {
-          console.error('Error occurred:', error);
-          alert('An error occurred, please try again.');
-      });
-    });
+  // Check if both fields are provided
+  if (!username || !password) {
+    alert('Username and password are required');
+    return;
+  }
+
+  // Send login request to the backend
+  fetch('http://127.0.0.1:5000/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: username, password: password }),
+    credentials: 'include'  // Ensures session is included in the request
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log(data);  // Log the response to check the output
+    
+    if (data.message === 'Login successful') {
+      // Use the redirect_url provided by the backend
+      const redirectUrl = data.redirect_url;
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+      } else {
+        alert('Redirection URL missing in response. Please contact support.');
+      }
+    } else {
+      alert(data.message || 'Login failed');
+    }
+  })
+  .catch(() => alert('An error occurred. Please try again.'));
+});
+
+
+
   </script>
 
 </body>
