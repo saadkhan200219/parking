@@ -17,9 +17,10 @@
     <button onclick="window.location.href='view-slots.html'">View Slots</button>
     <!-- <button onclick="window.location.href='search_cars.html'">Search Cars</button> -->
   </nav>
+  <h1 style="margin-left: 550px; color: #45a049;">Parking Slots</h1>
 
-  <main>
-    <h2>Parking Slots</h2>
+  <main style=" display: flex; justify-content: center;">
+    
     <ul id="slotsList"></ul>
   </main>
 
@@ -46,7 +47,15 @@
 
         data.forEach(slot => {
           const listItem = document.createElement('li');
+          listItem.style.listStyle = "none"
+          listItem.style.paddingTop = "10px"
+           listItem.style.paddingBottom = "10px"
           listItem.textContent = `Slot ${slot.slot_number}: ${slot.is_occupied ? 'Occupied' : 'Available'}`;
+          if(slot.is_occupied){
+            listItem.style.color = 'red'
+          }else{
+            listItem.style.color = 'green'
+          }
           slotsList.appendChild(listItem);
         });
       }
