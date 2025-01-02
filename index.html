@@ -9,6 +9,7 @@
 <body>
   <header>
     <h1>Car Parking Management System</h1>
+    <p id="userGreeting">Welcome, Loading...</p> <!-- Add a greeting for the logged-in user -->
   </header>
 
   <nav>
@@ -21,51 +22,82 @@
     <section class="dashboard">
       <div class="card">
         <h2>Total Cars Parked</h2>
-        <p id="totalCars">15</p>
+        <p id="totalCars">Loading...</p>
       </div>
       <div class="card">
         <h2>Available Slots</h2>
-        <p id="availableSlots">10</p>
+        <p id="availableSlots">Loading...</p>
       </div>
       <div class="card">
         <h2>Occupied Slots</h2>
-        <p id="occupiedSlots">5</p>
+        <div id="occupiedSlot">Loading...</div>
       </div>
     </section>
   </main>
 
   <script>
-    // Check if the user is logged in
-    fetch('http://127.0.0.1:5000/api/check_login', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.message !== 'Logged in') {
-        window.location.href = 'login.html'; // Redirect to login page if not logged in
-      }
-    })
-    .catch(error => console.error('Error:', error));
+    // Fetch dashboard data from the API
+   // Fetch dashboard data from the API
+   fetch('http://127.0.0.1:5000/api/dashboard_data', {
+  method: 'GET',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include'  // Include credentials (cookies) in the request
+})
+.then(response => response.json())
+.then(data => {
+  if (data.message && data.message === 'User not logged in') {
+    alert('You must be logged in to view the dashboard.');
+    window.location.href = 'login.html';  // Redirect to login if not logged in
+    return;
+  }
 
+  // Check if the username is provided in the response
+  document.getElementById('userGreeting').innerHTML = data.username ? `Welcome, ${data.username}` : 'Welcome!';
+
+  // Update Total Cars Parked
+  document.getElementById('totalCars').innerHTML = data.total_cars || 0;
+
+  // Update Available Slots
+  document.getElementById('availableSlots').innerHTML = data.available_slots || 0;
+
+  // Update Occupied Slots
+  const occupiedSlotDiv = document.getElementById('occupiedSlot');
+  occupiedSlotDiv.innerHTML = ''; // Clear the loading text
+  if (data.occupied_slots && data.occupied_slots.length > 0) {
+    data.occupied_slots.forEach(slot => {
+      const slotInfo = `
+            <p>
+                Slot Number: ${slot.slot_number},<br>
+                Car Number: ${slot.car_number}, <br>
+                Time: ${slot.created_at}
+            </p>`;
+      occupiedSlotDiv.innerHTML += slotInfo;
+    });
+  } else {
+    occupiedSlotDiv.innerHTML = 'No occupied slots for you.';
+  }
+})
+.catch(error => {
+  console.error('Error fetching dashboard data:', error);
+  alert('Failed to load dashboard data.');
+});
+
+  
     // Logout functionality
     document.getElementById('logoutButton').addEventListener('click', function() {
       fetch('http://127.0.0.1:5000/api/logout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+        headers: { 'Content-Type': 'application/json' }
       })
       .then(response => response.json())
       .then(data => {
         if (data.message === 'Logged out successfully') {
-          window.location.href = 'login.html'; // Redirect to login page after logout
+          window.location.href = 'login.html';
         }
       })
-      .catch(error => console.error('Error:', error));
+      .catch(error => console.error('Error during logout:', error));
     });
   </script>
+  
 </body>
 </html>
