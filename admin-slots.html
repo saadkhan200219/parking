@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Slots</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+
+  </style>
+</head>
+<body>
+  <h1>Admin - View All Slots</h1>
+  <button id="logoutButton">Logout</button>
+  <table id="slotsTable">
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Slot Number</th>
+        <th>Is Occupied</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Dynamic data will be inserted here -->
+    </tbody>
+  </table>
+  <p id="emptyMessage" class="empty-message" style="display: none;">No slots data available.</p>
+
+  <script>
+    // Fetch all slots data from the backend
+    fetch('http://127.0.0.1:5000/api/admin/view-all-slots', {
+      method: 'GET',
+      credentials: 'include', // Include session cookie
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.message === "Slots retrieved successfully" && data.slots.length > 0) {
+          const tableBody = document.querySelector('#slotsTable tbody');
+
+          data.slots.forEach(slot => {
+            const row = document.createElement('tr');
+
+            const usernameCell = document.createElement('td');
+            usernameCell.textContent = slot.username || "Unassigned";
+            row.appendChild(usernameCell);
+
+            const slotNumberCell = document.createElement('td');
+            slotNumberCell.textContent = slot.slot_number;
+            row.appendChild(slotNumberCell);
+
+            const isOccupiedCell = document.createElement('td');
+            isOccupiedCell.textContent = slot.is_occupied ? "Yes" : "No";
+            row.appendChild(isOccupiedCell);
+
+            tableBody.appendChild(row);
+          });
+        } else {
+          document.getElementById('emptyMessage').style.display = 'block';
+        }
+      })
+      .catch(error => {
+        console.error("Error fetching slots:", error);
+        alert("Failed to load slots. Please try again.");
+      });
+      document.getElementById('logoutButton').addEventListener('click', function() {
+      fetch('http://127.0.0.1:5000/api/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.message === 'Logged out successfully') {
+          window.location.href = 'login.html';
+        }
+      })
+      .catch(error => console.error('Error during logout:', error));
+    });
+  </script>
+</body>
+</html>
