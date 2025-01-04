@@ -22,67 +22,127 @@
     <section class="dashboard">
       <div class="card">
         <h2>Total Cars Parked</h2>
-        <p id="totalCars">Loading...</p>
+        <p style="font-weight: 900; font-size: 26px;" id="totalCars">Loading...</p>
       </div>
       <div class="card">
         <h2>Available Slots</h2>
-        <p id="availableSlots">Loading...</p>
+        <p style="font-weight: 900; font-size: 26px;" id="availableSlots">Loading...</p>
       </div>
       <div class="card">
         <h2>Occupied Slots</h2>
-        <div id="occupiedSlot">Loading...</div>
+        <div id="occupiedSlot" style="overflow-y: auto; height: 180px; scrollbar-width: none; -ms-overflow-style: none;">
+          Loading...
+        </div>      
       </div>
     </section>
   </main>
 
   <script>
     // Fetch dashboard data from the API
-   // Fetch dashboard data from the API
-   fetch('http://127.0.0.1:5000/api/dashboard_data', {
-  method: 'GET',
-  headers: { 'Content-Type': 'application/json' },
-  credentials: 'include'  // Include credentials (cookies) in the request
-})
-.then(response => response.json())
-.then(data => {
-  if (data.message && data.message === 'User not logged in') {
-    alert('You must be logged in to view the dashboard.');
-    window.location.href = 'login.html';  // Redirect to login if not logged in
-    return;
-  }
+    function updateDashboard() {
+      fetch('http://127.0.0.1:5000/api/dashboard_data', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'  // Include credentials (cookies) in the request
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.message && data.message === 'User not logged in') {
+          alert('You must be logged in to view the dashboard.');
+          window.location.href = 'login.html';  // Redirect to login if not logged in
+          return;
+        }
 
-  // Check if the username is provided in the response
-  document.getElementById('userGreeting').innerHTML = data.username ? `Welcome, ${data.username}` : 'Welcome!';
+        // Check if the username is provided in the response
+        document.getElementById('userGreeting').innerHTML = data.username ? `Welcome, ${data.username}` : 'Welcome!';
 
-  // Update Total Cars Parked
-  document.getElementById('totalCars').innerHTML = data.total_cars || 0;
+        // Update Total Cars Parked
+        document.getElementById('totalCars').innerHTML = data.total_cars || 0;
 
-  // Update Available Slots
-  document.getElementById('availableSlots').innerHTML = data.available_slots || 0;
+        // Update Available Slots
+        document.getElementById('availableSlots').innerHTML = data.available_slots || 0;
 
-  // Update Occupied Slots
-  const occupiedSlotDiv = document.getElementById('occupiedSlot');
-  occupiedSlotDiv.innerHTML = ''; // Clear the loading text
-  if (data.occupied_slots && data.occupied_slots.length > 0) {
-    data.occupied_slots.forEach(slot => {
-      const slotInfo = `
-            <p>
-                Slot Number: ${slot.slot_number},<br>
-                Car Number: ${slot.car_number}, <br>
-                Time: ${slot.created_at}
-            </p>`;
-      occupiedSlotDiv.innerHTML += slotInfo;
-    });
-  } else {
-    occupiedSlotDiv.innerHTML = 'No occupied slots for you.';
-  }
-})
-.catch(error => {
-  console.error('Error fetching dashboard data:', error);
-  alert('Failed to load dashboard data.');
-});
+        // Update Occupied Slots
+        const occupiedSlotDiv = document.getElementById('occupiedSlot');
+        occupiedSlotDiv.innerHTML = ''; // Clear the loading text
 
-  
+        // Render occupied slots and add "Remove" button
+        if (data.occupied_slots && data.occupied_slots.length > 0) {
+          data.occupied_slots.forEach(slot => {
+            const slotInfo = `
+              <table style="border:none" id="slot-${slot.slot_number}">
+                <tr>
+                  <td><span style="vertical-align: middle; color:#4CAF50" >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hash"><line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="16" x2="14" y1="3" y2="21"/></svg></span></td>
+                  <td>${slot.slot_number}</td>
+                </tr>
+                <tr>
+                  <td><span style="color:#4CAF50"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-car"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg></span></td>
+                  <td>${slot.car_number}</td>
+                </tr>
+                <tr>
+                  <td><span style="color:#4CAF50"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span></td>
+                  <td>${slot.created_at}</td>
+                </tr>
+                <tr style="background-color: white; border:none;">
+                  <td colspan="2"><button class="remove-slot-button" data-slot-id="${slot.slot_number}">Remove</button></td>
+                </tr>
+              </table>`;
+            occupiedSlotDiv.innerHTML += slotInfo;
+          });
+
+          // Add event listener for removing slots
+          const removeButtons = document.querySelectorAll('.remove-slot-button');
+          removeButtons.forEach(button => {
+            button.addEventListener('click', function() {
+              const slotId = this.getAttribute('data-slot-id');
+              removeSlot(slotId);
+            });
+          });
+        } else {
+          occupiedSlotDiv.innerHTML = 'No occupied slots for you.';
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching dashboard data:', error);
+        alert('Failed to load dashboard data.');
+      });
+    }
+
+    function removeSlot(slotId) {
+  fetch(`http://127.0.0.1:5000/api/remove-slot/${slotId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',  // Ensure session is included
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.message === 'Slot removed successfully') {
+      const slotElement = document.getElementById(`slot-${slotId}`);
+      if (slotElement) {
+        slotElement.remove();
+        updateDashboard();  // Update dashboard after removal
+      }
+
+      // Optionally, show car and slot details
+      if (data.car_number && data.slot_number) {
+        alert(`Car ${data.car_number} has been removed from slot ${data.slot_number}.`);
+      }
+    } else if (data.message === 'Slot is not occupied or does not exist') {
+      alert('Slot is either not occupied or does not exist.');
+    } else {
+      alert('Failed to remove slot: ' + data.message);
+    }
+  })
+  .catch(error => {
+    console.error('Error removing slot:', error);
+    alert('An error occurred while removing the slot.');
+  });
+}
+
+    // Fetch data when the page loads
+    window.onload = updateDashboard;
+
     // Logout functionality
     document.getElementById('logoutButton').addEventListener('click', function() {
       fetch('http://127.0.0.1:5000/api/logout', {
@@ -98,6 +158,5 @@
       .catch(error => console.error('Error during logout:', error));
     });
   </script>
-  
 </body>
 </html>
