@@ -1,69 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>View Slots</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <header>
-    <h1>View Slots</h1>
-  </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>View Slots</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>View Slots</h1>
+    </header>
 
-  <nav>
-    <button onclick="window.location.href='index.html'">Dashboard</button>
-    <button onclick="window.location.href='add-car.html'">Add Car Entry</button>
-    <button onclick="window.location.href='view-slots.html'">View Slots</button>
-    <!-- <button onclick="window.location.href='search_cars.html'">Search Cars</button> -->
-  </nav>
-  <h1 style="margin-left: 550px; color: #45a049;">Parking Slots</h1>
+    <nav>
+      <button onclick="window.location.href='index.html'">Dashboard</button>
+      <button onclick="window.location.href='add-car.html'">
+        Add Car Entry
+      </button>
+      <button onclick="window.location.href='view-slots.html'">
+        View Slots
+      </button>
+      <!-- <button onclick="window.location.href='search_cars.html'">Search Cars</button> -->
+    </nav>
+    <h1 style="margin-left: 550px; color: #45a049">Parking Slots</h1>
 
-  <main style=" display: flex; justify-content: center;">
-    
-    <ul id="slotsList"></ul>
-  </main>
+    <main style="display: flex; justify-content: center">
+      <ul id="slotsList"></ul>
+    </main>
 
-  <script>
-    // Check if the user is logged in by checking session or token.
-    // If logged in, proceed to fetch data, else redirect to login page
-    fetch('http://127.0.0.1:5000/api/view_slots', {
-      method: 'GET',
-      credentials: 'include'  // This sends the session cookie for authentication.
-    })
-    .then(response => {
-      if (response.status === 401) {
-        // If the response is 401 Unauthorized, redirect to login page
-        alert('Please log in to view the slots.');
-        window.location.href = 'login.html';
-      } else {
-        return response.json(); // Proceed to process the response data if authenticated
-      }
-    })
-    .then(data => {
-      if (data) {
-        const slotsList = document.getElementById('slotsList');
-        slotsList.innerHTML = ''; // Clear the slots list
-
-        data.forEach(slot => {
-          const listItem = document.createElement('li');
-          listItem.style.listStyle = "none"
-          listItem.style.paddingTop = "10px"
-           listItem.style.paddingBottom = "10px"
-          listItem.textContent = `Slot ${slot.slot_number}: ${slot.is_occupied ? 'Occupied' : 'Available'}`;
-          if(slot.is_occupied){
-            listItem.style.color = 'red'
-          }else{
-            listItem.style.color = 'green'
+    <script>
+      // Check if the user is logged in by checking session or token.
+      // If logged in, proceed to fetch data, else redirect to login page
+      fetch("http://127.0.0.1:5000/api/view_slots", {
+        method: "GET",
+        credentials: "include", // This sends the session cookie for authentication.
+      })
+        .then((response) => {
+          if (response.status === 401) {
+            // If the response is 401 Unauthorized, redirect to login page
+            alert("Please log in to view the slots.");
+            window.location.href = "login.html";
+          } else {
+            return response.json(); // Proceed to process the response data if authenticated
           }
-          slotsList.appendChild(listItem);
+        })
+        .then((data) => {
+          if (data) {
+            const slotsList = document.getElementById("slotsList");
+            slotsList.innerHTML = ""; // Clear the slots list
+
+            data.forEach((slot) => {
+              const listItem = document.createElement("li");
+              listItem.style.listStyle = "none";
+              listItem.style.paddingTop = "10px";
+              listItem.style.paddingBottom = "10px";
+              listItem.style.paddingLeft = "10px";
+              listItem.style.paddingRight = "10px";
+              listItem.style.borderRadius = "10px";
+              listItem.style.textAlign = "center";
+              listItem.style.marginTop = "10px";
+              listItem.style.marginBottom = "10px";
+              listItem.style.color = "white";
+
+              listItem.textContent = `Slot ${slot.slot_number}`;
+              if (slot.is_occupied) {
+                listItem.style.backgroundColor = "red";
+              } else {
+                listItem.style.backgroundColor = "#4CAF50";
+              }
+              slotsList.appendChild(listItem);
+            });
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("An error occurred while fetching slot data.");
         });
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      alert('An error occurred while fetching slot data.');
-    });
-  </script>
-</body>
+    </script>
+  </body>
 </html>
