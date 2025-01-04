@@ -19,8 +19,13 @@
     <form id="signupForm">
       <label for="username">Username:</label>
       <input type="text" id="username" placeholder="Enter username" required>
+      
+      <label for="email">Email:</label>
+      <input type="email" id="email" placeholder="Enter email" required>
+
       <label for="password">Password:</label>
       <input type="password" id="password" placeholder="Enter password" required>
+      
       <button type="submit">Sign Up</button>
     </form>
   </main>
@@ -30,12 +35,19 @@
       event.preventDefault();
 
       const username = document.getElementById('username').value;
+      const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
+
+      // Validate email format
+      if (!/^\S+@\S+\.\S+$/.test(email)) {
+        alert('Please enter a valid email address');
+        return;
+      }
 
       fetch('http://127.0.0.1:5000/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, email, password })
       })
       .then(response => response.json())
       .then(data => {
