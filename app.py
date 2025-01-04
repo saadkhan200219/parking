@@ -1,9 +1,15 @@
 from flask import Flask, request, jsonify, session, send_from_directory
 from flask_cors import CORS
 import mysql.connector
+import re
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from datetime import timedelta
+from flask_mail import Mail, Message
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
 
 
 
@@ -13,6 +19,15 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # Or 'Strict' based on your requi
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(
     days=31
 )  # Set a long session duration
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'saadkhan200219@gmail.com'  # Your email
+app.config['MAIL_PASSWORD'] = 'zvyc oxml gtjf vdvm'  # Your email password or app-specific password
+app.config['MAIL_DEFAULT_SENDER'] = 'saadkhan200219@gmail.com'
+mail = Mail(app)
+
+
 
 app.secret_key = "your_secret_key_here"  # Change this to a more secure secret key
 CORS(app, supports_credentials=True)
@@ -53,16 +68,33 @@ def serve_index():
         os.path.join(app.root_path, "..", "front-end"), "index.html"
     )
 
+def send_email(to_email, subject, body):
+    msg = Message(subject, recipients=[to_email])
+    msg.body = body
+    try:
+        print(f"Sending email to {to_email} with subject {subject}")  # Debugging line
+        mail.send(msg)
+        print("Email sent successfully.")  # Debugging line
+    except Exception as e:
+        print(f"Error sending email: {e}")
+
 
 # API route for signup
 @app.route("/api/signup", methods=["POST"])
 def signup():
     data = request.get_json()
     username = data.get("username")
+    email = data.get("email")
     password = data.get("password")
 
-    if not username or not password:
-        return jsonify({"message": "Username and password are required"}), 400
+    # Validate required fields
+    if not username or not email or not password:
+        return jsonify({"message": "Username, email, and password are required"}), 400
+
+    # Validate email format
+    email_regex = r'^\S+@\S+\.\S+$'
+    if not re.match(email_regex, email):
+        return jsonify({"message": "Invalid email format"}), 400
 
     hashed_password = generate_password_hash(password)
 
@@ -72,17 +104,82 @@ def signup():
 
     cursor = conn.cursor()
     try:
+        # Insert user into the database
         cursor.execute(
-            "INSERT INTO users (username, password_hash) VALUES (%s, %s)",
-            (username, hashed_password),
+            "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)",
+            (username, email, hashed_password),
         )
         conn.commit()
         return jsonify({"message": "User created successfully"}), 201
     except Exception as e:
         conn.rollback()
+        # Check for duplicate email or username error
+        if "Duplicate entry" in str(e):
+            if "for key 'users.email'" in str(e):
+                return jsonify({"message": "Email is already registered"}), 400
+            elif "for key 'users.username'" in str(e):
+                return jsonify({"message": "Username is already taken"}), 400
         return jsonify({"message": f"An error occurred: {str(e)}"}), 500
     finally:
         conn.close()
+
+
+
+@app.route("/api/remove-slot/<int:slot_id>", methods=["DELETE"])
+def remove_slot(slot_id):
+    if "user_id" not in session:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    user_id = session["user_id"]  # Get the user_id from session
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Ensure the slot is occupied before trying to remove it
+        cursor.execute("SELECT is_occupied FROM slots WHERE slot_number = %s", (slot_id,))
+        slot = cursor.fetchone()
+
+        if not slot or slot[0] == 0:  # If the slot is not occupied
+            return jsonify({"message": "Slot is not occupied or does not exist"}), 400
+
+        # Fetch the car details before deletion
+        cursor.execute("SELECT car_number FROM cars WHERE slot_number = %s", (slot_id,))
+        car = cursor.fetchone()
+
+        if car:
+            car_number = car[0]  # Get the car number
+            print(f"Car found: {car_number}")  # Debugging line to check the car details
+
+            # Get the user email before removing the car
+            cursor.execute("SELECT email FROM users WHERE id = %s", (user_id,))
+            user = cursor.fetchone()
+            
+            if user:
+                user_email = user[0]  # Get the email of the user
+                print(f"Sending email to: {user_email}")  # Debugging line to check the user email
+                
+                # Send the email
+                send_email(user_email, "Your car has been removed from the parking slot", 
+                           f"Your car with number {car_number} has been removed from slot number {slot_id}. The slot is now available.")
+
+            # Proceed with slot and car removal
+            cursor.execute("UPDATE slots SET is_occupied = 0 WHERE slot_number = %s", (slot_id,))
+            cursor.execute("DELETE FROM cars WHERE slot_number = %s", (slot_id,))  # Remove car entry
+
+        else:
+            print(f"No car found in slot {slot_id}")  # Debugging line if no car was found
+
+        conn.commit()
+        return jsonify({"message": "Slot removed successfully"}), 200
+
+    except Exception as e:
+        print(f"Error removing slot: {e}")
+        return jsonify({"message": f"Error removing slot: {str(e)}"}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 
 
 # API route for login
@@ -175,8 +272,6 @@ def login():
         conn.close()
         return jsonify({"message": f"Error querying database: {str(e)}"}), 500
 
-
-# API route for fetching dashboard data
 @app.route("/api/dashboard_data", methods=["GET"])
 def dashboard_data():
     # Check if the user is logged in
@@ -199,7 +294,7 @@ def dashboard_data():
                 u.username,
                 u.id AS user_id,
                 (SELECT COUNT(*) FROM cars WHERE user_id = %s) AS total_cars,
-                (SELECT COUNT(*) FROM slots WHERE is_occupied = 0) AS available_slots,
+                (SELECT COUNT(*) FROM slots) - (SELECT COUNT(*) FROM slots WHERE is_occupied = 1) AS available_slots,
                 s.slot_number, c.car_number, c.created_at
             FROM 
                 users u
@@ -213,22 +308,30 @@ def dashboard_data():
             (user_id, user_id),
         )
 
-        # Fetch all the rows
+        # Fetch the rows
         data = cursor.fetchall()
         print("Query Results:", data)
 
-        # Return a default response if no data is found
+        # Check if any data was returned
         if not data:
+            # If no cars or occupied slots, fetch the username
+            cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+            user_info = cursor.fetchone()
+            username = user_info['username'] if user_info else 'User'  # Default 'User' if not found
+            cursor.execute("SELECT COUNT(*) FROM slots WHERE is_occupied = 0")  # Counting available slots
+            available_slots_data = cursor.fetchone()
+            available_slots = available_slots_data["COUNT(*)"] if available_slots_data else 0  # Default to 0 if no data
+
             return jsonify({
-                "username": "Guest",
+                "username": username,
                 "total_cars": 0,
-                "available_slots": 0,
+                "available_slots": available_slots,
                 "occupied_slots": []
             })
 
-        # Create the response object
+        # If data exists, use the first record for username and return cars and slots
         response = {
-            "username": data[0]["username"],
+            "username": data[0]["username"],  # The username is retrieved from the first row
             "total_cars": data[0]["total_cars"],
             "available_slots": data[0]["available_slots"],
             "occupied_slots": [
@@ -247,6 +350,7 @@ def dashboard_data():
     except Exception as e:
         print(f"Error fetching dashboard data: {e}")
         return jsonify({"message": "Error fetching dashboard data"}), 500
+
 
 # API route for logout
 
@@ -305,8 +409,6 @@ def logout():
     session.pop("user_id", None)  # Remove user from session
     return jsonify({"message": "Logged out successfully"}), 200
 
-
-# API route for adding a car
 @app.route("/api/add_car", methods=["POST"])
 def add_car():
     user_id = session.get("user_id")
@@ -316,19 +418,36 @@ def add_car():
     data = request.get_json()
     car_number = data["car_number"]
     slot_number = data["slot_number"]
+    from_date = data["from_date"]  # Get the from_date from the request (time format)
+    to_date = data["to_date"]      # Get the to_date from the request (time format)
+    section = data["section"]      # Get the section from the request
+
+    # Validate that all required fields are provided
+    if not car_number or not slot_number or not from_date or not to_date or not section:
+        return jsonify({"message": "Missing required fields"}), 400
+
+    # Validate time format (HH:MM:SS)
+    # try:
+    #     from datetime import datetime
+    #     datetime.strptime(from_date, "%H:%M:%S")  # Ensure from_date is a valid time string
+    #     datetime.strptime(to_date, "%H:%M:%S")    # Ensure to_date is a valid time string
+    # except ValueError:
+    #     return jsonify({"message": "Invalid time format. Please use HH:MM:SS."}), 400
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
+        # Add the car to the database, including from_date, to_date, and section
         cursor.execute(
             """ 
-            INSERT INTO cars (car_number, slot_number, user_id)
-            VALUES (%s, %s, %s)
+            INSERT INTO cars (car_number, slot_number, user_id, from_date, to_date, section)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """,
-            (car_number, slot_number, user_id),
+            (car_number, slot_number, user_id, from_date, to_date, section),
         )
 
+        # Update the slot status to occupied
         cursor.execute(
             """ 
             UPDATE slots SET is_occupied = 1 WHERE slot_number = %s
@@ -337,11 +456,34 @@ def add_car():
         )
 
         conn.commit()
+
+        # Retrieve the user's email from the database
+        cursor.execute(
+            """ 
+            SELECT email FROM users WHERE id = %s
+        """,
+            (user_id,),
+        )
+        user_email = cursor.fetchone()
+        if not user_email:
+            return jsonify({"message": "User email not found"}), 500
+
+        user_email = user_email[0]  # Extract the email from the query result
+
+        # Send a confirmation email to the user
+        subject = 'Parking Slot Booked'
+        message = f'Your car with number {car_number} has been successfully booked for parking in slot number {slot_number} from {from_date} to {to_date}. The parking section is {section}.'
+
+        send_email(user_email, subject, message)
+
         return jsonify({"message": "Car added successfully"}), 201
 
     except Exception as e:
         print(f"Error adding car: {e}")
         return jsonify({"message": "Error adding car"}), 500
+
+
+
 
 
 # API route for viewing slots
@@ -360,6 +502,9 @@ def view_slots():
         return jsonify(result), 200
     except Exception as e:
         return jsonify({"message": f"An error occurred: {str(e)}"}), 500
+    
+
+
 
 
 if __name__ == "__main__":
