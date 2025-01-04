@@ -25,6 +25,20 @@
       <label for="slotNumber">Slot Number:</label>
       <input type="number" id="slotNumber" placeholder="Enter slot number" required>
 
+      <label for="fromDate">From Time:</label>
+      <input type="time" id="fromDate" required>
+
+      <label for="toDate">To Time:</label>
+      <input type="time" id="toDate" required>
+
+      <label for="section">Area</label>
+      <select id="section" required>
+        <option value="A">Block A</option>
+        <option value="B">Block B</option>
+      </select>
+
+      <button disabled="true" id="totalCharge">Total Charge: $0</button>  
+
       <button type="submit">Add Car</button>
     </form>
 
@@ -33,24 +47,66 @@
   </main>
 
   <script>
-    // Simplified fetch method for form submission
+    // Function to calculate the total charge
+    function calculateCharge() {
+      const fromDate = document.getElementById('fromDate').value;
+      const toDate = document.getElementById('toDate').value;
+
+      // If both times are filled in, calculate the charge
+      if (fromDate && toDate) {
+        const fromTime = new Date(`1970-01-01T${fromDate}:00Z`);  // Create Date objects from time input
+        const toTime = new Date(`1970-01-01T${toDate}:00Z`);
+
+        // Calculate the time difference in minutes
+        const timeDifference = (toTime - fromTime) / (1000 * 60);  // Difference in minutes
+
+        if (timeDifference > 0) {
+          const totalCharge = timeDifference;  // $1 per minute
+          document.getElementById('totalCharge').textContent = `Total Charge: $${totalCharge.toFixed(2)}`;
+        } else {
+          document.getElementById('totalCharge').textContent = 'Total Charge: $0 (Invalid time range)';
+        }
+      }
+    }
+
+    // Event listener for form submission
     document.getElementById('addCarForm').addEventListener('submit', function(event) {
       event.preventDefault();
   
       const carNumber = document.getElementById('carNumber').value;
       const slotNumber = document.getElementById('slotNumber').value;
+      const fromDate = document.getElementById('fromDate').value;
+      const toDate = document.getElementById('toDate').value;
+      const section = document.getElementById('section').value;
   
-      if (!carNumber || !slotNumber) {
-        alert('Car number and slot are required.');
+      // Validate all fields are filled
+      if (!carNumber || !slotNumber || !fromDate || !toDate || !section) {
+        alert('All fields are required.');
         return;
       }
   
+      // Check if fromDate is greater than toDate
+      if (fromDate >= toDate) {
+        alert('From Time cannot be greater than or equal to To Time.');
+        return;
+      }
+
+      // Include total charge in the request body (optional if needed in backend)
+      const totalCharge = (parseFloat(document.getElementById('totalCharge').textContent.replace('Total Charge: $', '')) || 0);
+
       fetch('http://127.0.0.1:5000/api/add_car', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json' 
         },
-        body: JSON.stringify({ car_number: carNumber, slot_number: slotNumber }),
+        body: JSON.stringify({ 
+          car_number: carNumber, 
+          slot_number: slotNumber, 
+          from_date: fromDate, 
+          to_date: toDate, 
+          section: section,
+          total_charge: totalCharge  // Send total charge (optional)
+        }),
         credentials: 'include'  // Ensures that cookies (session) are sent with the request
       })
       .then(response => response.json())
@@ -64,6 +120,10 @@
       })
       .catch(() => alert('An error occurred. Please try again.'));
     });
+
+    // Event listeners for the time fields to recalculate charge on change
+    document.getElementById('fromDate').addEventListener('change', calculateCharge);
+    document.getElementById('toDate').addEventListener('change', calculateCharge);
   </script>
   
 </body>
