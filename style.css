@@ -137,6 +137,16 @@ body {
   
     nav button {
       width: 100%;
+      
     }
   }
-  
+  .remove-slot-button{
+    color: white;
+    background-color: red;
+    border-radius: 12px;
+    margin-left: 120px;
+
+  }
+#occupiedSlot::-webkit-scrollbar {
+    display: none; /* For Chrome, Safari, and Edge */
+  }
