@@ -1,0 +1,14 @@
+DELIMITER $$
+CREATE EVENT auto_remove_expired_cars
+ON SCHEDULE EVERY 1 MINUTE
+DO
+BEGIN
+    -- Delete expired cars
+    DELETE FROM cars WHERE TIME(to_date) < TIME(NOW());
+
+    -- Update slots to not occupied for slots no longer in use
+    UPDATE slots
+    SET is_occupied = 0
+    WHERE slot_number NOT IN (SELECT slot_number FROM cars);
+END$$
+DELIMITER ;
