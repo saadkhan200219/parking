@@ -26,16 +26,10 @@
       <input type="number" id="slotNumber" placeholder="Enter slot number" required>
 
       <label for="fromDate">From Time:</label>
-      <input type="time" id="fromDate" required>
+      <input type="time" id="fromDate" step="3600" required>
 
       <label for="toDate">To Time:</label>
-      <input type="time" id="toDate" required>
-
-      <label for="section">Area</label>
-      <select id="section" required>
-        <option value="A">Block A</option>
-        <option value="B">Block B</option>
-      </select>
+      <input type="time" id="toDate" step="3600" required>
 
       <button disabled="true" id="totalCharge">Total Charge: $0</button>  
 
@@ -48,28 +42,43 @@
 
   <script>
     // Function to calculate the total charge
-    function calculateCharge() {
-      const fromDate = document.getElementById('fromDate').value;
-      const toDate = document.getElementById('toDate').value;
+   // Function to calculate the total charge
+function calculateCharge() {
+  const fromDate = document.getElementById('fromDate').value;
+  const toDate = document.getElementById('toDate').value;
 
-      // If both times are filled in, calculate the charge
-      if (fromDate && toDate) {
-        const fromTime = new Date(`1970-01-01T${fromDate}:00Z`);  // Create Date objects from time input
-        const toTime = new Date(`1970-01-01T${toDate}:00Z`);
+  // If both times are filled in, calculate the charge
+  if (fromDate && toDate) {
+    const fromTime = new Date(`1970-01-01T${fromDate}:00Z`);  // Create Date objects from time input
+    const toTime = new Date(`1970-01-01T${toDate}:00Z`);
 
-        // Calculate the time difference in minutes
-        const timeDifference = (toTime - fromTime) / (1000 * 60);  // Difference in minutes
+    // Calculate the time difference in minutes
+    const timeDifference = (toTime - fromTime) / (1000 * 60);  // Difference in minutes
 
-        if (timeDifference > 0) {
-          const totalCharge = timeDifference;  // $1 per minute
-          document.getElementById('totalCharge').textContent = `Total Charge: $${totalCharge.toFixed(2)}`;
-        } else {
-          document.getElementById('totalCharge').textContent = 'Total Charge: $0 (Invalid time range)';
-        }
+    if (timeDifference > 720) {
+      // If the difference exceeds 12 hours (720 minutes), display an error
+      alert('Booking cannot be more than 12 hours.');
+      document.getElementById('totalCharge').textContent = 'Total Charge: $0 (Exceeds 12 hours)';
+      return;
+    } else if (timeDifference > 0) {
+      const totalCharge = timeDifference;  // $1 per minute
+      document.getElementById('totalCharge').textContent = `Total Charge: $${totalCharge.toFixed(2)}`;
+    } else {
+      document.getElementById('totalCharge').textContent = 'Total Charge: $0 (Invalid time range)';
+    }
+  }
+}
+
+
+    // Function to lock minutes to "00" for time inputs
+    function lockMinutes(inputElement) {
+      const timeValue = inputElement.value;
+      if (timeValue) {
+        const [hours] = timeValue.split(":"); // Extract only the hours
+        inputElement.value = `${hours}:00`;   // Reset minutes to "00"
       }
     }
 
-    // Event listener for form submission
     document.getElementById('addCarForm').addEventListener('submit', function(event) {
       event.preventDefault();
   
@@ -77,10 +86,8 @@
       const slotNumber = document.getElementById('slotNumber').value;
       const fromDate = document.getElementById('fromDate').value;
       const toDate = document.getElementById('toDate').value;
-      const section = document.getElementById('section').value;
-  
-      // Validate all fields are filled
-      if (!carNumber || !slotNumber || !fromDate || !toDate || !section) {
+
+      if (!carNumber || !slotNumber || !fromDate || !toDate) {
         alert('All fields are required.');
         return;
       }
@@ -91,7 +98,7 @@
         return;
       }
 
-      // Include total charge in the request body (optional if needed in backend)
+      // Include total charge in the request body
       const totalCharge = (parseFloat(document.getElementById('totalCharge').textContent.replace('Total Charge: $', '')) || 0);
 
       fetch('http://127.0.0.1:5000/api/add_car', {
@@ -104,10 +111,9 @@
           slot_number: slotNumber, 
           from_date: fromDate, 
           to_date: toDate, 
-          section: section,
-          total_charge: totalCharge  // Send total charge (optional)
+          total_charge: totalCharge  
         }),
-        credentials: 'include'  // Ensures that cookies (session) are sent with the request
+        credentials: 'include' 
       })
       .then(response => response.json())
       .then(data => {
@@ -121,10 +127,22 @@
       .catch(() => alert('An error occurred. Please try again.'));
     });
 
-    // Event listeners for the time fields to recalculate charge on change
-    document.getElementById('fromDate').addEventListener('change', calculateCharge);
-    document.getElementById('toDate').addEventListener('change', calculateCharge);
+    // Event listeners for the time fields
+    const fromDateInput = document.getElementById('fromDate');
+    const toDateInput = document.getElementById('toDate');
+
+    // Lock minutes and recalculate charge on changes
+    fromDateInput.addEventListener('input', () => {
+      lockMinutes(fromDateInput);
+      calculateCharge();
+    });
+    toDateInput.addEventListener('input', () => {
+      lockMinutes(toDateInput);
+      calculateCharge();
+    });
+
+    fromDateInput.addEventListener('change', () => lockMinutes(fromDateInput));
+    toDateInput.addEventListener('change', () => lockMinutes(toDateInput));
   </script>
-  
 </body>
 </html>
