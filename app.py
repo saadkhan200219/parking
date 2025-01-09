@@ -9,6 +9,8 @@ from flask_mail import Mail, Message
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import random
+import string
 
 
 
@@ -78,6 +80,11 @@ def send_email(to_email, subject, body):
     except Exception as e:
         print(f"Error sending email: {e}")
 
+
+def generate_parking_code(length=6):
+    """Generate a random alphanumeric parking code."""
+    characters = string.ascii_letters + string.digits
+    return ''.join(random.choices(characters, k=length))
 
 # API route for signup
 @app.route("/api/signup", methods=["POST"])
@@ -271,7 +278,6 @@ def login():
         cursor.close()
         conn.close()
         return jsonify({"message": f"Error querying database: {str(e)}"}), 500
-
 @app.route("/api/dashboard_data", methods=["GET"])
 def dashboard_data():
     # Check if the user is logged in
@@ -295,7 +301,7 @@ def dashboard_data():
                 u.id AS user_id,
                 (SELECT COUNT(*) FROM cars WHERE user_id = %s) AS total_cars,
                 (SELECT COUNT(*) FROM slots) - (SELECT COUNT(*) FROM slots WHERE is_occupied = 1) AS available_slots,
-                s.slot_number, c.car_number, c.created_at
+                s.slot_number, c.car_number, c.from_date, c.to_date
             FROM 
                 users u
             LEFT JOIN 
@@ -338,7 +344,8 @@ def dashboard_data():
                 {
                     "slot_number": row["slot_number"],
                     "car_number": row["car_number"],
-                    "created_at": row["created_at"],
+                    "from_date": str(row["from_date"]),  # Convert timedelta to string
+                    "to_date": str(row["to_date"]),  # Convert timedelta to string
                 }
                 for row in data
             ],
@@ -350,7 +357,6 @@ def dashboard_data():
     except Exception as e:
         print(f"Error fetching dashboard data: {e}")
         return jsonify({"message": "Error fetching dashboard data"}), 500
-
 
 # API route for logout
 
@@ -420,10 +426,9 @@ def add_car():
     slot_number = data["slot_number"]
     from_date = data["from_date"]  # Get the from_date from the request (time format)
     to_date = data["to_date"]      # Get the to_date from the request (time format)
-    section = data["section"]      # Get the section from the request
-
+    total_charge = data["total_charge"]
     # Validate that all required fields are provided
-    if not car_number or not slot_number or not from_date or not to_date or not section:
+    if not car_number or not slot_number or not from_date or not to_date:
         return jsonify({"message": "Missing required fields"}), 400
 
     # Validate time format (HH:MM:SS)
@@ -441,10 +446,10 @@ def add_car():
         # Add the car to the database, including from_date, to_date, and section
         cursor.execute(
             """ 
-            INSERT INTO cars (car_number, slot_number, user_id, from_date, to_date, section)
+            INSERT INTO cars (car_number, slot_number, user_id, from_date, to_date,total_charge )
             VALUES (%s, %s, %s, %s, %s, %s)
         """,
-            (car_number, slot_number, user_id, from_date, to_date, section),
+            (car_number, slot_number, user_id, from_date, to_date,total_charge),
         )
 
         # Update the slot status to occupied
@@ -469,10 +474,11 @@ def add_car():
             return jsonify({"message": "User email not found"}), 500
 
         user_email = user_email[0]  # Extract the email from the query result
+        parking_code = generate_parking_code()
 
         # Send a confirmation email to the user
         subject = 'Parking Slot Booked'
-        message = f'Your car with number {car_number} has been successfully booked for parking in slot number {slot_number} from {from_date} to {to_date}. The parking section is {section}.'
+        message = f'Your car with number {car_number} has been successfully booked for parking in slot number {slot_number} from {from_date} to {to_date} with total bill of {total_charge}. your parking code is {parking_code}'
 
         send_email(user_email, subject, message)
 
@@ -502,6 +508,8 @@ def view_slots():
         return jsonify(result), 200
     except Exception as e:
         return jsonify({"message": f"An error occurred: {str(e)}"}), 500
+    
+
     
 
 
