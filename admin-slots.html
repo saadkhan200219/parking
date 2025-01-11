@@ -1,80 +1,256 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Slots</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Cars</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
 
-  </style>
+        h2 {
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+            font-size: 2.5rem;
+            animation: fadeInDown 1s ease;
+            text-align: center;
+            width: 100%;
+        }
+        table {
+            width: 90%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border-radius: 10px;
+            background: #fff;
+        }
+
+        table thead {
+            background-color: #4CAF50;
+            color: #000000;
+        }
+
+        table, th, td {
+            border: none;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+        }
+
+        th {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        td {
+            font-size: 1rem;
+            color: #555;
+        }
+
+        tr:nth-child(odd) {
+            background-color: #f2f2f2;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+            transform: scale(1.02);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .error-message {
+            color: red;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 1rem;
+            color: #fff;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        footer {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #4CAF50;
+            padding: 10px 20px;
+            color: #fff;
+        }
+
+        .logout-button {
+            background-color: #f44336;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        .logout-button:hover {
+            background-color: #e53935;
+            transform: translateY(-2px);
+        }
+    </style>
 </head>
 <body>
-  <h1>Admin - View All Slots</h1>
-  <button id="logoutButton">Logout</button>
-  <table id="slotsTable">
-    <thead>
-      <tr>
-        <th>Username</th>
-        <th>Slot Number</th>
-        <th>Is Occupied</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Dynamic data will be inserted here -->
-    </tbody>
-  </table>
-  <p id="emptyMessage" class="empty-message" style="display: none;">No slots data available.</p>
+    <div class="header">
+        <h2>Admin Slots</h2>
+        
+    </div>
+    <button class="logout-button" onclick="logout()">Logout</button>
+    <div id="errorMessage" class="error-message"></div>
 
-  <script>
-    // Fetch all slots data from the backend
-    fetch('http://127.0.0.1:5000/api/admin/view-all-slots', {
-      method: 'GET',
-      credentials: 'include', // Include session cookie
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data.message === "Slots retrieved successfully" && data.slots.length > 0) {
-          const tableBody = document.querySelector('#slotsTable tbody');
+    <table id="carsTable">
+        <thead>
+            <tr>
+                <th style="text-align: center;color: #4CAF50;">User Name</th>
+                <th style="text-align: center;color: #4CAF50;">Car Number</th>
+                <th style="text-align: center;color: #4CAF50;">Slot Number</th>
+                <th style="text-align: center;color: #4CAF50;">Booking At</th>
+                <th style="text-align: center;color: #4CAF50;">Timing</th>
+                <th style="text-align: center;color: #4CAF50;">Charges</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Car data will be populated here -->
+        </tbody>
+    </table>
 
-          data.slots.forEach(slot => {
-            const row = document.createElement('tr');
+    <button onclick="fetchCars()">Refresh Data</button>
 
-            const usernameCell = document.createElement('td');
-            usernameCell.textContent = slot.username || "Unassigned";
-            row.appendChild(usernameCell);
+    <footer>
+        &copy; 2025 Car Management System. All Rights Reserved.
+    </footer>
 
-            const slotNumberCell = document.createElement('td');
-            slotNumberCell.textContent = slot.slot_number;
-            row.appendChild(slotNumberCell);
+    <script>
+        // Function to fetch all cars
+        async function fetchCars() {
+            const errorMessageDiv = document.getElementById('errorMessage');
+            const carsTableBody = document.getElementById('carsTable').getElementsByTagName('tbody')[0];
 
-            const isOccupiedCell = document.createElement('td');
-            isOccupiedCell.textContent = slot.is_occupied ? "Yes" : "No";
-            row.appendChild(isOccupiedCell);
+            try {
+                // Fetch data from the backend API
+                const response = await fetch('http://127.0.0.1:5000/api/admin/view-all-slots', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                });
 
-            tableBody.appendChild(row);
-          });
-        } else {
-          document.getElementById('emptyMessage').style.display = 'block';
+                // If the response is not OK (e.g., user is not an admin)
+                if (!response.ok) {
+                    const data = await response.json();
+                    errorMessageDiv.textContent = data.message || 'An error occurred.';
+                    return;
+                }
+
+                // If the response is successful
+                const cars = await response.json();
+
+                // Clear any existing data in the table
+                carsTableBody.innerHTML = '';
+
+                // Populate the table with car data
+                cars.forEach(car => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td style="text-align:center">${car[8]}</td> <!-- User Name -->
+                        <td style="text-align:center">${car[1]}</td> <!-- Car Number -->
+                        <td style="text-align:center">${car[2]}</td> <!-- Slot Number -->
+                        <td style="text-align:center">${car[4]}</td> <!-- Booking At -->
+                        <td style="text-align:center">${car[5]}-${car[6]}</td> <!-- Timing -->
+                        <td style="text-align:center">${car[7]} Rs</td> <!-- Charges -->
+                    `;
+                    carsTableBody.appendChild(row);
+                });
+            } catch (error) {
+                errorMessageDiv.textContent = 'Error fetching data: ' + error.message;
+            }
         }
-      })
-      .catch(error => {
-        console.error("Error fetching slots:", error);
-        alert("Failed to load slots. Please try again.");
-      });
-      document.getElementById('logoutButton').addEventListener('click', function() {
-      fetch('http://127.0.0.1:5000/api/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.message === 'Logged out successfully') {
-          window.location.href = 'login.html';
+
+        // Function to log out
+        async function logout() {
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                });
+
+                if (response.ok) {
+                    window.location.href = '/login.html';
+                } else {
+                    const data = await response.json();
+                    alert(data.message || 'Failed to log out');
+                }
+            } catch (error) {
+            }
         }
-      })
-      .catch(error => console.error('Error during logout:', error));
-    });
-  </script>
+
+        // Call fetchCars when the page loads
+        fetchCars();
+    </script>
+
 </body>
 </html>
