@@ -29,7 +29,7 @@
         <p style="font-weight: 900; font-size: 26px;" id="availableSlots">Loading...</p>
       </div>
       <div class="card">
-        <h2>Occupied Slots</h2>
+        <h2 style="padding-bottom: 0px!important;">Occupied Slots</h2>
         <div id="occupiedSlot" style="overflow-y: auto; height: 180px; scrollbar-width: none; -ms-overflow-style: none;">
           Loading...
         </div>      
@@ -82,7 +82,7 @@
                 </tr>
                 <tr>
                   <td><span style="color:#4CAF50"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span></td>
-                  <td>${slot.created_at}</td>
+                  <td>${slot.from_date}-${slot.to_date}  </td>
                 </tr>
                 <tr style="background-color: white; border:none;">
                   <td colspan="2"><button class="remove-slot-button" data-slot-id="${slot.slot_number}">Remove</button></td>
