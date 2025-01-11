@@ -11,6 +11,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import random
 import string
+from datetime import datetime, timedelta
+
 
 
 
@@ -189,6 +191,71 @@ def remove_slot(slot_id):
 
 
 
+@app.route("/api/admin/remove-car", methods=["POST"])
+def remove_car():
+    if "user_id" not in session:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    data = request.get_json()
+    car_id = data.get("carId")
+    slot_number = data.get("slotNumber")
+
+    if not car_id or not slot_number:
+        return jsonify({"message": "Car ID and Slot Number are required."}), 400
+
+    conn = get_db_connection()
+    if conn is None:
+        return jsonify({"message": "Database connection failed."}), 500
+
+    cursor = conn.cursor()
+    try:
+        # Check if the car exists in the database
+        cursor.execute("SELECT car_number FROM cars WHERE id = %s", (car_id,))
+        car = cursor.fetchone()
+
+        if not car:
+            return jsonify({"message": "Car not found."}), 404
+
+        car_number = car[0]
+
+        # Check if the slot is occupied by this car
+        cursor.execute("SELECT is_occupied FROM slots WHERE slot_number = %s", (slot_number,))
+        slot = cursor.fetchone()
+
+        if not slot or slot[0] == 0:
+            return jsonify({"message": "The slot is not occupied."}), 400
+
+        # Fetch admin email for sending notification
+        cursor.execute("SELECT email FROM users WHERE id = %s", (session["user_id"],))
+        admin = cursor.fetchone()
+
+        if admin:
+            admin_email = admin[0]
+            send_email(
+                admin_email,
+                "Car Removal Notification",
+                f"The car with number {car_number} has been removed from slot number {slot_number}."
+            )
+
+        # Remove the car from the cars table
+        cursor.execute("DELETE FROM cars WHERE id = %s", (car_id,))
+
+        # Update the slot to set is_occupied to 0
+        cursor.execute("UPDATE slots SET is_occupied = 0 WHERE slot_number = %s", (slot_number,))
+
+        conn.commit()
+        return jsonify({"message": "Car removed and slot updated successfully."}), 200
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"message": f"Error: {str(e)}"}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
 # API route for login
 # @app.route('/api/login', methods=['POST'])
 # def login():
@@ -360,50 +427,53 @@ def dashboard_data():
 
 # API route for logout
 
+
+
+
+
+from datetime import datetime, timedelta
+
+from datetime import datetime, timedelta
 @app.route("/api/admin/view-all-slots", methods=["GET"])
 def view_all_slots():
-    # Check if the user is logged in and is an admin
-    if "user_id" not in session or not session.get("is_admin"):
-        return jsonify({"message": "Unauthorized"}), 403
+    # Debug session data
+    print("Session during view-all-slots request:", session)
+
+    # Check if user is an admin
+    if not session.get("is_admin"):
+        return jsonify({"message": "Unauthorized access, admin privileges required"}), 403
 
     conn = get_db_connection()
     if conn is None:
         return jsonify({"message": "Database connection failed"}), 500
 
     try:
-        cursor = conn.cursor(dictionary=True)
-        
-        # Query to fetch all users and their slots
+        cursor = conn.cursor()
+        # Query to fetch data from cars table and corresponding username from users table
         cursor.execute("""
-    SELECT
-        users.username,
-        slots.slot_number,
-        slots.is_occupied
-    FROM
-        users
-    LEFT JOIN
-        cars ON users.id = cars.user_id  -- Corrected to join by user_id
-    LEFT JOIN
-        slots ON cars.slot_number = slots.slot_number
-    ORDER BY
-        slots.slot_number
-""")
+            SELECT cars.*, users.username
+            FROM cars
+            JOIN users ON cars.user_id = users.id
+        """)
+        cars_with_users = cursor.fetchall()
 
-        result = cursor.fetchall()
+        # Convert datetime or timedelta objects to strings
+        cars_list = []
+        for record in cars_with_users:
+            record_data = list(record)  # Convert tuple to list to modify the data
+            for i, value in enumerate(record_data):
+                if isinstance(value, datetime):
+                    record_data[i] = value.isoformat()  # Convert datetime to string
+                elif isinstance(value, timedelta):
+                    record_data[i] = str(value)  # Convert timedelta to string
+            cars_list.append(record_data)
+
         cursor.close()
         conn.close()
 
-        return jsonify({"message": "Slots retrieved successfully", "slots": result}), 200
-
+        return jsonify(cars_list), 200
     except Exception as e:
-        cursor.close()
-        conn.close()
-        return jsonify({"message": f"Error retrieving slots: {str(e)}"}), 500
-
-
-
-
-
+        return jsonify({"message": f"Error querying database: {str(e)}"}), 500
 
 
 
@@ -509,11 +579,6 @@ def view_slots():
     except Exception as e:
         return jsonify({"message": f"An error occurred: {str(e)}"}), 500
     
-
-    
-
-
-
 
 if __name__ == "__main__":
     app.run(debug=True)
