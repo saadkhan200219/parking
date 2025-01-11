@@ -167,6 +167,8 @@
                 <th style="text-align: center;color: #4CAF50;">Booking At</th>
                 <th style="text-align: center;color: #4CAF50;">Timing</th>
                 <th style="text-align: center;color: #4CAF50;">Charges</th>
+                <th></th>
+                
             </tr>
         </thead>
         <tbody>
@@ -185,7 +187,7 @@
         async function fetchCars() {
             const errorMessageDiv = document.getElementById('errorMessage');
             const carsTableBody = document.getElementById('carsTable').getElementsByTagName('tbody')[0];
-
+    
             try {
                 // Fetch data from the backend API
                 const response = await fetch('http://127.0.0.1:5000/api/admin/view-all-slots', {
@@ -195,20 +197,20 @@
                     },
                     credentials: 'include',
                 });
-
+    
                 // If the response is not OK (e.g., user is not an admin)
                 if (!response.ok) {
                     const data = await response.json();
                     errorMessageDiv.textContent = data.message || 'An error occurred.';
                     return;
                 }
-
+    
                 // If the response is successful
                 const cars = await response.json();
-
+    
                 // Clear any existing data in the table
                 carsTableBody.innerHTML = '';
-
+    
                 // Populate the table with car data
                 cars.forEach(car => {
                     const row = document.createElement('tr');
@@ -219,6 +221,9 @@
                         <td style="text-align:center">${car[4]}</td> <!-- Booking At -->
                         <td style="text-align:center">${car[5]}-${car[6]}</td> <!-- Timing -->
                         <td style="text-align:center">${car[7]} Rs</td> <!-- Charges -->
+                        <td style="text-align:center">
+                            <button onclick="removeCar(${car[2]})">Remove</button>
+                        </td>
                     `;
                     carsTableBody.appendChild(row);
                 });
@@ -226,7 +231,34 @@
                 errorMessageDiv.textContent = 'Error fetching data: ' + error.message;
             }
         }
-
+    
+        // Function to remove a car
+        async function removeCar(slotNumber) {
+            const errorMessageDiv = document.getElementById('errorMessage');
+    
+            try {
+                // Send DELETE request to the backend API
+                const response = await fetch(`http://127.0.0.1:5000/api/remove-slot/${slotNumber}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                });
+    
+                if (!response.ok) {
+                    const data = await response.json();
+                    errorMessageDiv.textContent = data.message || 'Failed to remove car.';
+                    return;
+                }
+    
+                // Refresh the car list after successful removal
+                fetchCars();
+            } catch (error) {
+                errorMessageDiv.textContent = 'Error removing car: ' + error.message;
+            }
+        }
+    
         // Function to log out
         async function logout() {
             try {
@@ -237,7 +269,7 @@
                     },
                     credentials: 'include',
                 });
-
+    
                 if (response.ok) {
                     window.location.href = '/login.html';
                 } else {
@@ -245,12 +277,13 @@
                     alert(data.message || 'Failed to log out');
                 }
             } catch (error) {
+                console.error('Error logging out:', error);
             }
         }
-
+    
         // Call fetchCars when the page loads
         fetchCars();
     </script>
-
+    
 </body>
 </html>
