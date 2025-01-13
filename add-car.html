@@ -42,33 +42,31 @@
 
   <script>
     // Function to calculate the total charge
-   // Function to calculate the total charge
-function calculateCharge() {
-  const fromDate = document.getElementById('fromDate').value;
-  const toDate = document.getElementById('toDate').value;
+    function calculateCharge() {
+      const fromDate = document.getElementById('fromDate').value;
+      const toDate = document.getElementById('toDate').value;
 
-  // If both times are filled in, calculate the charge
-  if (fromDate && toDate) {
-    const fromTime = new Date(`1970-01-01T${fromDate}:00Z`);  // Create Date objects from time input
-    const toTime = new Date(`1970-01-01T${toDate}:00Z`);
+      // If both times are filled in, calculate the charge
+      if (fromDate && toDate) {
+        const fromTime = new Date(`1970-01-01T${fromDate}:00Z`);  // Create Date objects from time input
+        const toTime = new Date(`1970-01-01T${toDate}:00Z`);
 
-    // Calculate the time difference in minutes
-    const timeDifference = (toTime - fromTime) / (1000 * 60);  // Difference in minutes
+        // Calculate the time difference in minutes
+        const timeDifference = (toTime - fromTime) / (1000 * 60);  // Difference in minutes
 
-    if (timeDifference > 720) {
-      // If the difference exceeds 12 hours (720 minutes), display an error
-      alert('Booking cannot be more than 12 hours.');
-      document.getElementById('totalCharge').textContent = 'Total Charge: $0 (Exceeds 12 hours)';
-      return;
-    } else if (timeDifference > 0) {
-      const totalCharge = timeDifference;  // $1 per minute
-      document.getElementById('totalCharge').textContent = `Total Charge: $${totalCharge.toFixed(2)}`;
-    } else {
-      document.getElementById('totalCharge').textContent = 'Total Charge: $0 (Invalid time range)';
+        if (timeDifference > 720) {
+          // If the difference exceeds 12 hours (720 minutes), display an error
+          alert('Booking cannot be more than 12 hours.');
+          document.getElementById('totalCharge').textContent = 'Total Charge: $0 (Exceeds 12 hours)';
+          return;
+        } else if (timeDifference > 0) {
+          const totalCharge = timeDifference;  // $1 per minute
+          document.getElementById('totalCharge').textContent = `Total Charge: $${totalCharge.toFixed(2)}`;
+        } else {
+          document.getElementById('totalCharge').textContent = 'Total Charge: $0 (Invalid time range)';
+        }
+      }
     }
-  }
-}
-
 
     // Function to lock minutes to "00" for time inputs
     function lockMinutes(inputElement) {
@@ -76,6 +74,26 @@ function calculateCharge() {
       if (timeValue) {
         const [hours] = timeValue.split(":"); // Extract only the hours
         inputElement.value = `${hours}:00`;   // Reset minutes to "00"
+      }
+    }
+
+    // Function to validate if fromDate is valid for current hour
+    function validateFromDate() {
+      const fromDateInput = document.getElementById('fromDate').value;
+      const currentTime = new Date();
+
+      // Get current time as hours and minutes
+      const currentHours = currentTime.getHours();
+      const currentMinutes = currentTime.getMinutes();
+
+      // Check if fromDate is in the current hour or a valid future hour
+      const [fromHours, fromMinutes] = fromDateInput.split(":").map(Number);
+      if (
+        (fromHours < currentHours)
+    
+      ) {
+        alert('From Time must be in the current hour or a valid future time.');
+        document.getElementById('fromDate').value = ''; // Reset the input field
       }
     }
 
@@ -141,7 +159,10 @@ function calculateCharge() {
       calculateCharge();
     });
 
-    fromDateInput.addEventListener('change', () => lockMinutes(fromDateInput));
+    fromDateInput.addEventListener('change', () => {
+      lockMinutes(fromDateInput);
+      validateFromDate();
+    });
     toDateInput.addEventListener('change', () => lockMinutes(toDateInput));
   </script>
 </body>
