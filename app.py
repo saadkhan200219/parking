@@ -523,12 +523,6 @@ def add_car():
         )
 
         # Update the slot status to occupied
-        cursor.execute(
-            """ 
-            UPDATE slots SET is_occupied = 1 WHERE slot_number = %s
-        """,
-            (slot_number,),
-        )
 
         conn.commit()
 
